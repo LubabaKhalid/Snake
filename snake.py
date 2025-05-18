@@ -18,8 +18,8 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
 # Load images
-snake_head_img = pygame.image.load('snake_head.png').convert_alpha()
-snake_body_img = pygame.image.load('snake_body.png').convert_alpha()
+snake_head_img = pygame.image.load('snake_head.jpg').convert_alpha()
+snake_body_img = pygame.image.load('snake_image.jpg').convert_alpha()
 food_img = pygame.image.load('food.png').convert_alpha()
 obstacle_img = pygame.image.load('obstacle.png').convert_alpha()
 background_img = pygame.image.load('background.png').convert()
