@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Snake AI Game - Select Stage</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background: #222;
+      color: white;
+    }
+    input[type=number] {
+      padding: 10px;
+      font-size: 18px;
+      width: 60px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    h1 {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to Snake AI Game</h1>
+  <p>Choose your stage (1 to 3):</p>
+  <input id="stageInput" type="number" min="1" max="3" value="1" />
+  <button onclick="startGame()">Start Game</button>
+
+  <p id="message"></p>
+
+  <script>
+    function startGame() {
+      const stage = document.getElementById("stageInput").value;
+      if (stage < 1 || stage > 3) {
+        document.getElementById("message").textContent = "Please select a stage between 1 and 3.";
+        return;
+      }
+      document.getElementById("message").textContent = "Launching game with Stage " + stage + "...";
+
+      // Here you could call your backend or run python script with stage arg
+      // Since browsers can't run Python directly, this is a placeholder.
+
+      alert(`To play Stage ${stage}, run the Python game with argument: python snake.py ${stage}`);
+    }
+  </script>
