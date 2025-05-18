@@ -5,13 +5,13 @@ import sys
 # Initialize Pygame
 pygame.init()
 
-# Game window settings
+# Window and Grid settings
 WIDTH, HEIGHT = 600, 400
 CELL_SIZE = 20
 ROWS = HEIGHT // CELL_SIZE
 COLS = WIDTH // CELL_SIZE
 win = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Snake Game with Levels")
+pygame.display.set_caption("Snake AI Game - User Places Food")
 
 # Colors
 WHITE = (255, 255, 255)
@@ -20,45 +20,39 @@ RED = (255, 0, 0)
 BLACK = (0, 0, 0)
 GRAY = (100, 100, 100)
 
-# Clock
+# Game Clock and Speed
 clock = pygame.time.Clock()
 base_speed = 10
+
+# Font
+font = pygame.font.SysFont("arial", 20)
 
 # Snake and direction
 snake = [(5, 5)]
 direction = (1, 0)
 
-# Obstacles (initialize before using in food function)
+# Obstacles
 obstacles = []
 
-# Font
-font = pygame.font.SysFont("arial", 20)
+# Food - initially none (user will place)
+food = None
 
-# Food
-def generate_food():
-    while True:
-        pos = (random.randint(0, COLS-1), random.randint(0, ROWS-1))
-        if pos not in snake and pos not in obstacles:
-            return pos
-
-food = generate_food()
-
-# Obstacles by level
+# Obstacles based on level
 def get_obstacles(level):
     obs = []
     if level >= 2:
         for i in range(10, 20):
-            obs.append((i, 10))  # horizontal wall
+            obs.append((i, 10))
     if level >= 3:
         for i in range(5, 15):
-            obs.append((15, i))  # vertical wall
+            obs.append((15, i))
     return obs
 
 # Get level
 def get_level():
     return max(1, len(snake) // 5)
 
-# Get speed based on level
+# Get speed
 def get_speed():
     return base_speed + get_level() - 1
 
@@ -66,21 +60,21 @@ def get_speed():
 def draw_window():
     win.fill(BLACK)
 
-    # Draw snake
     for x, y in snake:
-        pygame.draw.rect(win, GREEN, (x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+        pygame.draw.rect(win, GREEN, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
-    # Draw food
-    fx, fy = food
-    pygame.draw.rect(win, RED, (fx*CELL_SIZE, fy*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    if food:
+        fx, fy = food
+        pygame.draw.rect(win, RED, (fx * CELL_SIZE, fy * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
-    # Draw obstacles
     for ox, oy in obstacles:
-        pygame.draw.rect(win, GRAY, (ox*CELL_SIZE, oy*CELL_SIZE, CELL_SIZE, CELL_SIZE))
+        pygame.draw.rect(win, GRAY, (ox * CELL_SIZE, oy * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
-    # Draw level
     level_text = font.render(f"Level: {get_level()}", True, WHITE)
     win.blit(level_text, (10, 10))
+
+    instruction_text = font.render("Click to place food", True, WHITE)
+    win.blit(instruction_text, (WIDTH - 180, 10))
 
     pygame.display.update()
 
@@ -90,7 +84,7 @@ def move_snake():
     head = snake[0]
     new_head = (head[0] + direction[0], head[1] + direction[1])
 
-    # Collision with wall or self or obstacles
+    # Check collisions
     if (new_head[0] < 0 or new_head[0] >= COLS or
         new_head[1] < 0 or new_head[1] >= ROWS or
         new_head in snake or
@@ -99,13 +93,13 @@ def move_snake():
 
     snake.insert(0, new_head)
 
-    # Eat food or move
-    if new_head == food:
-        food = generate_food()
+    if food and new_head == food:
+        # Snake ate the food, remove food from board (wait for next user placement)
+        food = None
     else:
         snake.pop()
 
-# Game over screen
+# Game over
 def game_over():
     text = font.render("Game Over! Press R to Restart or Q to Quit", True, WHITE)
     win.blit(text, (WIDTH // 2 - 180, HEIGHT // 2))
@@ -124,17 +118,42 @@ def game_over():
                     pygame.quit()
                     sys.exit()
 
-# Restart game
+# Restart
 def restart_game():
     global snake, direction, food
-    snake = [(5, 5)]
+    snake.clear()
+    snake.append((5, 5))
     direction = (1, 0)
-    food = generate_food()
+    food = None
     main()
+
+# AI logic: move toward food
+def get_ai_direction(snake, food, obstacles):
+    if not food:
+        return direction  # Keep going same way if no food
+
+    head = snake[0]
+    directions = [(0, -1), (0, 1), (-1, 0), (1, 0)]  # Up, Down, Left, Right
+    safe_moves = []
+
+    for d in directions:
+        new_head = (head[0] + d[0], head[1] + d[1])
+        if (0 <= new_head[0] < COLS and
+            0 <= new_head[1] < ROWS and
+            new_head not in snake and
+            new_head not in obstacles):
+            safe_moves.append((d, new_head))
+
+    if safe_moves:
+        # Sort moves by Manhattan distance to food
+        safe_moves.sort(key=lambda move: abs(move[1][0] - food[0]) + abs(move[1][1] - food[1]))
+        return safe_moves[0][0]
+
+    return (0, 0)  # No safe move
 
 # Main loop
 def main():
-    global direction, obstacles
+    global direction, obstacles, food
     while True:
         clock.tick(get_speed())
         for event in pygame.event.get():
@@ -142,20 +161,20 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-        # Controls
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_UP] and direction != (0, 1):
-            direction = (0, -1)
-        if keys[pygame.K_DOWN] and direction != (0, -1):
-            direction = (0, 1)
-        if keys[pygame.K_LEFT] and direction != (1, 0):
-            direction = (-1, 0)
-        if keys[pygame.K_RIGHT] and direction != (-1, 0):
-            direction = (1, 0)
+            # User places food on click
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mx, my = pygame.mouse.get_pos()
+                grid_x = mx // CELL_SIZE
+                grid_y = my // CELL_SIZE
+                if (grid_x, grid_y) not in snake and (grid_x, grid_y) not in obstacles:
+                    food = (grid_x, grid_y)
+
+            # Restart/Quit handled in game_over only
 
         obstacles = get_obstacles(get_level())
+        direction = get_ai_direction(snake, food, obstacles)
         move_snake()
         draw_window()
 
-# Run the game
+# Start game
 main()
